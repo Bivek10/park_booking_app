@@ -1,11 +1,18 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:typed_data';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 
-import './SigninPage.dart';
-import './HomeScreen.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:parkingapp/screens/search.dart';
+import 'package:parkingapp/services/geolocator_service.dart';
+import 'package:parkingapp/services/places_service.dart';
+import 'package:provider/provider.dart';
+import 'dart:ui' as ui;
 
-final FirebaseAuth _auth = FirebaseAuth.instance;
+import 'models/place.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,81 +22,38 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smart Car Parking',
-      home: MyHomePage(title: 'Home'),
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  User user;
-
-  @override
-  void initState() {
-    super.initState();
-    _auth.authStateChanges().listen((firebaseUser) {
-      if (firebaseUser != null) {
-        setState(() {
-          user = firebaseUser;
-        });
-      } else {
-        setState(() {
-          user = null;
-        });
-      }
-    });
-  }
+  final locatorService = GeoLocatorService();
+  final placesService = PlacesService();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.only(right: 18.0),
-            child: InkWell(
-              onTap: () {
-                if (user == null)
-                  _pushPage(context, SigninPage());
-                else
-                  _signOut();
-              },
-              child: Center(
-                  child: Text(
-                user == null ? "Sign in" : "Sign out",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-              )),
-            ),
-          )
-        ],
+    return MultiProvider(
+      providers: [
+        FutureProvider(create: (context) => locatorService.getLocation()),
+        FutureProvider(create: (context) {
+          ImageConfiguration configuration =
+              createLocalImageConfiguration(context);
+          // return getBytesFromAsset("assets/parking-icon.png", 10);
+          return BitmapDescriptor.fromAssetImage(
+              configuration, 'assets/parking-icon.png');
+        }),
+        ProxyProvider2<Position, BitmapDescriptor, Future<List<Place>>>(
+          update: (context, position, icon, places) {
+            return (position != null)
+                ? placesService.getPlaces(
+                    position.latitude, position.longitude, icon)
+                : null;
+          },
+        )
+      ],
+      child: MaterialApp(
+        title: 'Parking App',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: Search(),
       ),
-      body: HomeScreen(),
     );
-  }
-
-  void _pushPage(BuildContext context, Widget page) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => page),
-    );
-  }
-
-  void _signOut() async {
-    await _auth.signOut();
   }
 }

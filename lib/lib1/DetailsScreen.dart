@@ -13,8 +13,9 @@ class DetailsScreen extends StatefulWidget {
 class ParkingSlot {
   int location;
   bool isOccupied;
+  bool isverify;
   bool isSelected;
-  ParkingSlot(this.location, this.isOccupied, this.isSelected);
+  ParkingSlot(this.location, this.isOccupied, this.isverify, this.isSelected);
 }
 
 int totalSize;
@@ -24,6 +25,7 @@ int numberOfParkingSlotsInEachTower;
 class _DetailsScreenState extends State<DetailsScreen> {
   List<ParkingSlot> parkingSlots = new List();
   List<ParkingSlot> bookedSlots = new List();
+  List<ParkingSlot> pendingSlots = new List();
   bool isLoaded = false;
   Future<void> getData() async {
     FirebaseAuth auth = FirebaseAuth.instance;
@@ -46,27 +48,41 @@ class _DetailsScreenState extends State<DetailsScreen> {
       setState(() {
         parkingSlots.clear();
         bookedSlots.clear();
+        pendingSlots.clear();
       });
       bool isOccupied;
-      print("tower" + widget.location);
+      bool isVerify;
+      //print("tower" + widget.location);
       for (int i = 1; i <= numberOfParkingSlotsInEachTower; i++) {
         isOccupied = value.data()['parkingSlot$i']['isOccupied'];
-        print("is occupied $isOccupied");
-        if (isOccupied) {
+        isVerify = value.data()["parkingSlot$i"]["isVarify"];
+        //print("is occupied $isOccupied");
+        if (isOccupied && isVerify != null && isVerify) {
           String userIDBookedByTheUser;
           userIDBookedByTheUser = value.data()['parkingSlot$i']['ownerID'];
           if (userIDBookedByTheUser == user.uid) {
             setState(() {
-              bookedSlots.add(new ParkingSlot(i, isOccupied, false));
+              bookedSlots.add(new ParkingSlot(i, isOccupied, isVerify, false));
             });
           } else {
             setState(() {
-              parkingSlots.add(new ParkingSlot(i, isOccupied, false));
+              parkingSlots.add(new ParkingSlot(i, isOccupied, isVerify, false));
             });
+          }
+        } else if (isVerify != null) {
+          if (!isVerify && isOccupied) {
+            String userIDBookedByTheUser;
+            userIDBookedByTheUser = value.data()['parkingSlot$i']['ownerID'];
+            if (userIDBookedByTheUser == user.uid) {
+              setState(() {
+                pendingSlots
+                    .add(new ParkingSlot(i, isOccupied, isVerify, false));
+              });
+            }
           }
         } else {
           setState(() {
-            parkingSlots.add(new ParkingSlot(i, isOccupied, false));
+            parkingSlots.add(new ParkingSlot(i, isOccupied, isVerify, false));
           });
         }
       }
@@ -79,7 +95,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   @override
   void initState() {
     super.initState();
-    //print("location ${widget.location}");
+    ////print("location ${widget.location}");
     getData();
   }
 
@@ -87,11 +103,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
       new TextEditingController(text: "");
 
   Future<void> bookParkingSlots() async {
-    print(availableLocationsSelected);
+    //print(availableLocationsSelected);
     if (availableLocationsSelected.length > 0) {
       _showDialog(true);
     } else {
-      print("Select Atleast One");
+      //print("Select Atleast One");
       Scaffold.of(key.currentContext).showSnackBar(SnackBar(
         content: Text(
           "Please Select Atleast One",
@@ -109,7 +125,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
         context: key.currentContext,
         builder: (context) {
           return AlertDialog(
-            title: Text("Enter your account password:"),
+            title: Text(
+              "Enter your account password:",
+              style: TextStyle(
+                fontSize: 14,
+              ),
+            ),
             content: Container(
                 child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -119,11 +140,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   child: TextFormField(
                     controller: _passwordController,
                     decoration: InputDecoration(labelText: 'Password'),
+                    // ignore: missing_return
                     validator: (String value) {
                       if (value.isEmpty) {
                         return 'Please enter some text';
                       }
-                      if (value.length <= 6) {
+                      if (value.length < 6) {
                         return 'Please enter atleast 6 characters long password';
                       }
                     },
@@ -146,7 +168,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       var pass = Crypt(encryptedPassword);
 
                       if (pass.match(_passwordController.text + "@1234!")) {
-                        print("PAssword Matched");
+                        //print("PAssword Matched");
                         if (isBooked) {
                           book();
                         } else {
@@ -176,11 +198,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
   }
 
   Future<void> unbookParkingSlots() async {
-    print(bookedLocationsSelected);
+    //print(bookedLocationsSelected);
     if (bookedLocationsSelected.length > 0) {
       _showDialog(false);
     } else {
-      print("Select Atleast One");
+      //print("Select Atleast One");
       Scaffold.of(key.currentContext).showSnackBar(SnackBar(
         content: Text(
           "Please Select Atleast One",
@@ -217,8 +239,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
       await db.collection("towersInfo").doc('tower${widget.location}').update({
         'parkingSlot${bookedLocationsSelected.toList()[i - 1]}': {
           'isOccupied': false,
-          'ownerID': "",
-          'occupiedTimeStamp': null,
         }
       });
     }
@@ -237,12 +257,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
         'occupied': occupiedParkingSlots - bookedLocationsSelected.length,
       }
     });
-    print("Data Updated Successfuly");
+    //print("Data Updated Successfuly");
     Scaffold.of(key.currentContext).removeCurrentSnackBar();
     Scaffold.of(key.currentContext).showSnackBar(SnackBar(
       content: Text(
         "UnBooked  Successfully",
-        style: TextStyle(color: Colors.black, fontSize: 18),
+        style: TextStyle(color: Colors.black, fontSize: 15),
       ),
       duration: Duration(seconds: 1),
       backgroundColor: Colors.green,
@@ -264,6 +284,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
     FirebaseAuth auth = FirebaseAuth.instance;
     FirebaseFirestore db = FirebaseFirestore.instance;
     User user = (await auth.currentUser);
+    //print("user id is ${user.uid}");
     await db.collection("towersInfo").doc("mainInfo").get().then((onValue) {
       occupancy = onValue.data()['occupancy'];
       availableSlots = onValue.data()['availableSlots'];
@@ -279,6 +300,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           'isOccupied': true,
           'ownerID': user.uid,
           'occupiedTimeStamp': DateTime.now().millisecondsSinceEpoch,
+          'isVarify': false,
         }
       });
     }
@@ -297,12 +319,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
         'occupied': occupiedParkingSlots + availableLocationsSelected.length,
       }
     });
-    print("Data Updated Successfuly");
+    //print("Data Updated Successfuly");
     Scaffold.of(key.currentContext).removeCurrentSnackBar();
     Scaffold.of(key.currentContext).showSnackBar(SnackBar(
       content: Text(
-        "Booked  Successfully",
-        style: TextStyle(color: Colors.black, fontSize: 18),
+        "Booked Request  Sent",
+        style: TextStyle(color: Colors.black, fontSize: 15),
       ),
       duration: Duration(seconds: 1),
       backgroundColor: Colors.green,
@@ -316,8 +338,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
         title: Text("Tower " + widget.location.toString()),
         centerTitle: true,
+        backgroundColor: Color.fromRGBO(37, 52, 112, 0.8),
       ),
       body:
           ListView(key: key, scrollDirection: Axis.vertical, children: <Widget>[
@@ -356,11 +380,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       children: <Widget>[
                         Text(
                           "Occupied  ",
-                          style: TextStyle(fontSize: 20),
+                          style: TextStyle(fontSize: 14),
                         ),
                         Container(
-                          width: 25,
-                          height: 25,
+                          width: 15,
+                          height: 15,
                           color: Colors.red,
                         )
                       ],
@@ -368,14 +392,24 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     Row(
                       children: <Widget>[
                         Text(
-                          "Available  ",
-                          style: TextStyle(fontSize: 20),
+                          "Pending  ",
+                          style: TextStyle(fontSize: 14),
                         ),
                         Container(
-                          width: 25,
-                          height: 25,
+                          width: 15,
+                          height: 15,
                           color: Colors.blue,
                         )
+                      ],
+                    ),
+                    Row(
+                      children: <Widget>[
+                        Text(
+                          "Available  ",
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Container(
+                            width: 15, height: 15, color: Colors.orangeAccent)
                       ],
                     ),
                   ],
@@ -395,11 +429,75 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           horizontal: 8.0, vertical: 10),
                       child: Text(
                         "Book Selected Parking Slots",
-                        style: TextStyle(fontSize: 18),
+                        style: TextStyle(fontSize: 13),
                       ),
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                )
+              : null,
+        ),
+        Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: pendingSlots.length > 0
+              ? Container(
+                  child: Column(
+                    children: <Widget>[
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Text(
+                          "Your Requested Parking Slots",
+                          style: TextStyle(
+                            color: Color.fromRGBO(37, 52, 112, 0.8),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      OrientationBuilder(
+                        builder: (context, orientation) {
+                          return GridView.builder(
+                            physics: BouncingScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: pendingSlots.length,
+                            itemBuilder: (context, index) {
+                              return GridItemForBookedSlots(
+                                  bookedSlot: pendingSlots[index]);
+                            },
+                            gridDelegate:
+                                new SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount:
+                                        orientation == Orientation.portrait
+                                            ? 3
+                                            : 5,
+                                    mainAxisSpacing: 20,
+                                    crossAxisSpacing: 20),
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(18.0),
+                        child: RaisedButton(
+                          onPressed: () {
+                            unbookParkingSlots();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 10),
+                            child: Text(
+                              "Cancle Parking",
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      )
+                    ],
                   ),
                 )
               : null,
@@ -410,15 +508,19 @@ class _DetailsScreenState extends State<DetailsScreen> {
               ? Container(
                   child: Column(
                     children: <Widget>[
-                      Text(
-                        "Your Booked Parking Slots",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Text(
+                          "Your Booked Parking Slots",
+                          style: TextStyle(
+                            color: Color.fromRGBO(37, 52, 112, 0.8),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       SizedBox(
-                        height: 20,
+                        height: 10,
                       ),
                       OrientationBuilder(
                         builder: (context, orientation) {
@@ -451,12 +553,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8.0, vertical: 10),
                             child: Text(
-                              "UnBook Selected Parking Slots",
-                              style: TextStyle(fontSize: 18),
+                              "Cancle Parking",
+                              style: TextStyle(fontSize: 14),
                             ),
                           ),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20)),
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       )
                     ],
@@ -507,7 +609,9 @@ class _GridItemForAvaialbleSlotsState extends State<GridItemForAvaialbleSlots> {
       },
       child: Container(
           decoration: BoxDecoration(
-            color: widget.parkingSlot.isOccupied ? Colors.red : Colors.blue,
+            color: widget.parkingSlot.isOccupied
+                ? Colors.red
+                : Colors.orangeAccent,
             borderRadius: BorderRadius.circular(20),
             border: widget.parkingSlot.isSelected
                 ? BorderDirectional(
@@ -544,7 +648,7 @@ class _GridItemForBookedSlotsState extends State<GridItemForBookedSlots> {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        print(widget.bookedSlot.location);
+        //print(widget.bookedSlot.location);
         setState(() {
           widget.bookedSlot.isSelected = !widget.bookedSlot.isSelected;
           if (widget.bookedSlot.isSelected) {
@@ -553,31 +657,33 @@ class _GridItemForBookedSlotsState extends State<GridItemForBookedSlots> {
             bookedLocationsSelected.remove(widget.bookedSlot.location);
           }
         });
-        print(bookedLocationsSelected);
+        //print(bookedLocationsSelected);
       },
       child: Container(
-          decoration: BoxDecoration(
-            color: widget.bookedSlot.isOccupied ? Colors.red : Colors.blue,
-            borderRadius: BorderRadius.circular(20),
-            border: widget.bookedSlot.isSelected
-                ? BorderDirectional(
-                    start: BorderSide(color: Colors.green, width: 5),
-                    top: BorderSide(color: Colors.green, width: 5),
-                    bottom: BorderSide(color: Colors.green, width: 5),
-                    end: BorderSide(color: Colors.green, width: 5))
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Center(
-                  child: Text(
+        decoration: BoxDecoration(
+          color: widget.bookedSlot.isverify ? Colors.red : Colors.blue,
+          borderRadius: BorderRadius.circular(20),
+          border: widget.bookedSlot.isSelected
+              ? BorderDirectional(
+                  start: BorderSide(color: Colors.green, width: 5),
+                  top: BorderSide(color: Colors.green, width: 5),
+                  bottom: BorderSide(color: Colors.green, width: 5),
+                  end: BorderSide(color: Colors.green, width: 5))
+              : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Center(
+              child: Text(
                 widget.bookedSlot.location.toString(),
                 style: TextStyle(fontSize: 25),
-              )),
-            ],
-          )),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

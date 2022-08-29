@@ -12,28 +12,26 @@ class HomeScreenState extends State<HomeScreen> {
   List<Tower> towers = new List();
   int totalSize;
   int numberOfTowers;
-
   Future<void> getData() async {
     await FirebaseFirestore.instance
         .collection("towersInfo")
         .doc("mainInfo")
         .get()
         .then((value) {
-      print("value is ${value.id}");
+      //print("value is ${value.id}");
       if (value != null) {
         totalSize = value.data()['occupancy'];
         numberOfTowers = value.data()['numberOfTowers'];
       }
     });
-
     FirebaseFirestore.instance
         .collection("towersInfo")
         .doc("towers")
         .snapshots()
         .listen((value) {
-      print("tower info $value");
+      //print("tower info $value");
       towers.clear();
-      print("number of tower is $numberOfTowers");
+      //print("number of tower is $numberOfTowers");
       for (int i = 1; i <= numberOfTowers; i++) {
         int occupied = value.data()['tower' + i.toString()]['occupied'];
         int availableSlots =
@@ -63,8 +61,8 @@ class HomeScreenState extends State<HomeScreen> {
                     ? CircularProgressIndicator()
                     : GridItem(towers[index]),
                 gridDelegate: new SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount:
-                        orientation == Orientation.portrait ? 2 : 3),
+                  crossAxisCount: orientation == Orientation.portrait ? 2 : 3,
+                ),
               ),
             )
           : Center(
@@ -96,14 +94,14 @@ class GridItem extends StatefulWidget {
 class _GridItemState extends State<GridItem> {
   void handleGridItemClick(BuildContext context) async {
     String location = widget.tower.towerID.toString();
-    print(location + " Clicked ");
+    //print(location + " Clicked ");
     FirebaseAuth firebaseAuth = FirebaseAuth.instance;
     User user = await firebaseAuth.currentUser;
     if (user != null) {
-      print("user authenticated");
+      //print("user authenticated");
       _pushPage(context, DetailsScreen(location));
     } else {
-      print("user is not authorised");
+      //print("user is not authorised");
       Scaffold.of(context).showSnackBar(SnackBar(
         content: Text(
           "Please sign up/ sign in",
@@ -130,29 +128,33 @@ class _GridItemState extends State<GridItem> {
         onTap: () {
           handleGridItemClick(context);
         },
-        child: Container(
-          decoration: BoxDecoration(
-              color: Color(0xffcdf909),
-              borderRadius: BorderRadius.circular(20)),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                widget.tower.towerID.toString(),
-                style: TextStyle(fontSize: 50, color: Colors.black),
-              ),
-              Text("Available: " + widget.tower.availableSlots.toString(),
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black)),
-              Text("Occupied: " + widget.tower.occupied.toString(),
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black)),
-            ],
+        child: Material(
+          elevation: 2,
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            decoration: BoxDecoration(
+                color: Colors.orangeAccent,
+                borderRadius: BorderRadius.circular(15)),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  widget.tower.towerID.toString(),
+                  style: TextStyle(fontSize: 50, color: Colors.black),
+                ),
+                Text("Available: " + widget.tower.availableSlots.toString(),
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black)),
+                Text("Occupied: " + widget.tower.occupied.toString(),
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black)),
+              ],
+            ),
           ),
         ),
       ),
