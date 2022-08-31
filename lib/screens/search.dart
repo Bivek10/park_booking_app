@@ -59,8 +59,8 @@ class _SearchState extends State<Search> {
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: IconButton(
-                onPressed: () {
+              child: InkWell(
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -68,9 +68,26 @@ class _SearchState extends State<Search> {
                     ),
                   );
                 },
-                icon: Icon(Icons.person),
+                child: Chip(
+                  avatar: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.red,
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 15,
+                    ),
+                  ),
+                  label: Text(
+                    "Admin Login",
+                    style: TextStyle(
+                      color: Color.fromRGBO(37, 52, 112, 0.8),
+                    ),
+                  ),
+                  backgroundColor: Colors.white,
+                ),
               ),
-            )
+            ),
           ],
         ),
         body: (currentPosition != null)

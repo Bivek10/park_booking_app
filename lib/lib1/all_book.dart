@@ -66,7 +66,7 @@ class _AllBookDetailsState extends State<AllBookDetails> {
         }
       });
     }
-    print(pendingBooking);
+    //  print(pendingBooking);
     return pendingBooking;
   }
 
@@ -108,9 +108,8 @@ class _AllBookDetailsState extends State<AllBookDetails> {
                 return pendingBooking.isEmpty
                     ? Container(
                         child: Center(
-                          child: Text("Sorry! No booking is made yet."),
-                        ),
-                      )
+                        child: CircularProgress(),
+                      ))
                     : ListView.builder(
                         itemCount: pendingBooking.length,
                         itemBuilder: ((context, index) {

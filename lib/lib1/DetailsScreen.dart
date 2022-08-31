@@ -320,7 +320,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
       }
     });
     //print("Data Updated Successfuly");
-    Scaffold.of(key.currentContext).removeCurrentSnackBar();
+    //Scaffold.of(key.currentContext).removeCurrentSnackBar();
     Scaffold.of(key.currentContext).showSnackBar(SnackBar(
       content: Text(
         "Booked Request  Sent",
